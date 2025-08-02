@@ -1,0 +1,9 @@
+motion_controller_node:
+  ros__parameters:
+    linear_velocity_gain: 1.2
+    angular_velocity_gain: 0.8
+    max_linear_velocity: 0.5
+    max_angular_velocity: 1.5
+    use_simulation_time: True
+
+#예시
