@@ -17,7 +17,6 @@ def generate_launch_description():
     scan_mode = LaunchConfiguration('scan_mode', default='Sensitivity')
 
     return LaunchDescription([
-
         # 런치 인자 선언
         DeclareLaunchArgument('channel_type', default_value=channel_type),
         DeclareLaunchArgument('serial_port', default_value=serial_port),
@@ -50,6 +49,15 @@ def generate_launch_description():
             executable='static_transform_publisher',
             name='laser_tf_pub',
             arguments=['0', '0', '0.1', '0', '0', '0', 'base_link', 'laser'],
+            output='screen'
+        ),
+
+        # odom → base_link 정적 TF 퍼블리셔 (추가!)
+        Node(
+            package='tf2_ros',
+            executable='static_transform_publisher',
+            name='odom_tf_pub',
+            arguments=['0', '0', '0', '0', '0', '0', 'odom', 'base_link'],
             output='screen'
         ),
 
