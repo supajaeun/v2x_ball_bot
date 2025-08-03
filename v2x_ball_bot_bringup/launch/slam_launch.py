@@ -65,5 +65,19 @@ def generate_launch_description():
                     parameters=[{'use_sim_time': False}]
                 )
             ]
+        ),
+
+        # map_saver_cli 실행 (10초 지연)
+        TimerAction(
+            period=10.0,
+            actions=[
+                Node(
+                    package='nav2_map_server',
+                    executable='map_saver_cli',
+                    name='map_saver',
+                    output='screen',
+                    arguments=['-f', '/tmp/my_map']
+                )
+            ]
         )
     ])
