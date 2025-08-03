@@ -17,7 +17,7 @@ class BallDetectorNode(Node):
         # YOLO 모델 로드
         self.model = YOLO(os.path.join(
             os.path.dirname(__file__),
-            'ball_detector_v1.pt'
+            'ball_detector_v2.pt'
         ))
         self.bridge = CvBridge()
 
