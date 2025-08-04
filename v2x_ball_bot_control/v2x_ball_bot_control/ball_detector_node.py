@@ -15,10 +15,8 @@ class BallDetectorNode(Node):
         super().__init__('ball_detector_node')
 
         # YOLO 모델 로드
-        self.model = YOLO(os.path.join(
-            os.path.dirname(__file__),
-            'ball_detector_v2.pt'
-        ))
+        self.model = YOLO("/root/ros2_ws/install/v2x_ball_bot_control/lib/v2x_ball_bot_control/ball_detector_v2.pt")
+        print(self.model.names)
         self.bridge = CvBridge()
 
         self.create_subscription(Image, '/color/image_raw', self.rgb_callback, 10)
