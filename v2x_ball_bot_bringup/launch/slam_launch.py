@@ -53,6 +53,15 @@ def generate_launch_description():
             output='screen'
         ),
 
+        # odom → map 정적 TF 퍼블리셔
+        Node(
+            package='tf2_ros',
+            executable='static_transform_publisher',
+            name='odom_map_tf_pub',
+            arguments=['0', '0', '0', '0', '0', '0', 'odom', 'map'],
+            output='screen'
+        ),
+
         # SLAM Toolbox 실행 (3초 지연)
         TimerAction(
             period=3.0,
@@ -62,14 +71,24 @@ def generate_launch_description():
                     executable='async_slam_toolbox_node',
                     name='slam_toolbox',
                     output='screen',
-                    parameters=[{'use_sim_time': False}]
+                    parameters=[{
+                        'use_sim_time': False,
+                        'odom_frame': 'odom',
+                        'map_frame': 'map',
+                        'base_frame': 'base_link',
+                        'scan_topic': '/scan',
+                        'queue_size': 100,
+                        'use_scan_matching': True,
+                        'use_odometry': False
+                    }]
                 )
             ]
         ),
 
-        # map_saver_cli 실행 (10초 지연)
+
+        # map_saver_cli 실행 (20초 지연)
         TimerAction(
-            period=10.0,
+            period=20.0,
             actions=[
                 Node(
                     package='nav2_map_server',
