@@ -1,3 +1,9 @@
+## Rviz2 실행
+xhost +local:docker
+docker exec -it ros2_humble_dev_usb bash
+export DISPLAY=:0
+rviz2 실행
+
 ## depth camera 실행 
 
 ros2 run orbbec_camera orbbec_camera_node \
@@ -18,5 +24,5 @@ ros2 run orbbec_camera orbbec_camera_node \
 colcon build --packages-select v2x_ball_bot_control
 source install/setup.bash
 
-##
+## 드라이브 링크
 https://drive.google.com/drive/folders/1AKHB_Y0bQoje9KC5DslliCRysFL5NmXu?usp=sharing
