@@ -65,7 +65,7 @@ def generate_launch_description():
                          'serial_baudrate': serial_baudrate,
                          'frame_id': frame_id,
                          'inverted': inverted,
-                         'scan_mode': 'Standard',
+                         'scan_mode': scan_mode,
                          'angle_compensate': angle_compensate}],
             output='screen'),
     ])

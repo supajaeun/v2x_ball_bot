@@ -57,7 +57,7 @@ class BallDetectorNode(Node):
         # YOLO 추론
         results = self.model(color_img)
 
-        # ✅ YOLO가 인식한 결과 시각화
+        # YOLO가 인식한 결과 시각화
         vis_img = results[0].plot()
         cv2.imshow("YOLO Detections", vis_img)
         cv2.waitKey(1)
@@ -126,7 +126,7 @@ def main(args=None):
     rclpy.spin(node)
     node.destroy_node()
     rclpy.shutdown()
-    cv2.destroyAllWindows()  # ✅ 창 닫기
+    cv2.destroyAllWindows()  
 
 if __name__ == '__main__':
     main()
