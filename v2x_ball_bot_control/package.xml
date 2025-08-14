@@ -1,3 +1,4 @@
+<?xml version="1.0"?>
 <package format="3">
   <name>v2x_ball_bot_control</name>
   <version>0.0.0</version>
@@ -7,15 +8,37 @@
   <license>Apache-2.0</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
+  <buildtool_depend>ament_cmake_python</buildtool_depend>
 
+  <!-- ROS 2 Python 실행 필수 -->
   <exec_depend>rclpy</exec_depend>
+
+  <!-- 메시지 타입 -->
   <exec_depend>sensor_msgs</exec_depend>
   <exec_depend>std_msgs</exec_depend>
   <exec_depend>geometry_msgs</exec_depend>
   <exec_depend>nav_msgs</exec_depend>
-  <exec_depend>cv_bridge</exec_depend>
-  <exec_depend>tf2_ros</exec_depend>
+  <exec_depend>visualization_msgs</exec_depend>
   <exec_depend>v2x_ball_bot_msgs</exec_depend>
+
+  <!-- Computer Vision -->
+  <exec_depend>cv_bridge</exec_depend>
+  <exec_depend>message_filters</exec_depend>
+
+  <!-- TF 변환 -->
+  <exec_depend>tf2_ros</exec_depend>
+  <exec_depend>tf2_geometry_msgs</exec_depend>
+
+  <!-- Python 패키지 (YOLO) -->
+  <!-- ultralytics, numpy, opencv-python은 pip로 설치 -->
+  <!-- 필요시 requirements.txt 관리 -->
+
+    <!-- launch/launch_ros: 런치 파일에서 노드 실행/포함(Include) 시 필요한 런타임 의존성 -->
+  <exec_depend>launch</exec_depend>
+  <exec_depend>launch_ros</exec_depend>
+
+    <!-- twist_mux: Nav2와 정밀접근(servo) 속도 명령을 우선순위로 병합하는 노드 -->
+  <exec_depend>twist_mux</exec_depend>
 
   <export>
     <build_type>ament_cmake</build_type>
