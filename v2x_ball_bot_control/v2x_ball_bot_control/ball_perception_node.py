@@ -32,7 +32,7 @@ class BallPerceptionNode(Node):
 
         # === 파라미터 ===
         self.rgb_topic = self.declare_parameter('rgb_topic', '/color/image_raw').value
-        self.depth_topic = self.declare_parameter('depth_topic', '/aligned_depth_to_color/image_raw').value
+        self.depth_topic = self.declare_parameter('depth_topic', '/depth/image_raw').value
         self.camera_info_topic = self.declare_parameter('camera_info_topic', '/color/camera_info').value
         self.publish_frame = self.declare_parameter('publish_frame', 'map').value
 
@@ -80,13 +80,17 @@ class BallPerceptionNode(Node):
         boxes = results[0].boxes.xyxy.cpu().numpy()
         scores = results[0].boxes.conf.cpu().numpy()
 
+        # ✅ YOLO 시각화 창 표시
+        vis_img = results[0].plot()
+        cv2.imshow("YOLO Detections", vis_img)
+        cv2.waitKey(1)
+
         if len(boxes) == 0:
             return
 
         # === 출력 메시지 준비 ===
         ball_array = BallArray()
-        ball_array.header.stamp = rgb_msg.header.stamp
-        ball_array.header.frame_id = self.publish_frame
+        ball_array.stamp = rgb_msg.header.stamp
         markers = MarkerArray()
 
         for i, (box, score) in enumerate(zip(boxes, scores)):
@@ -98,12 +102,18 @@ class BallPerceptionNode(Node):
                 continue
 
             ball_msg = Ball()
-            ball_msg.id = self.next_id
-            ball_msg.position_map = p_map.point
-            ball_msg.confidence = float(score)
-            ball_msg.speed, ball_msg.static = self.update_tracking(self.next_id, p_map.point.x, p_map.point.y, rgb_msg.header.stamp.sec)
-            ball_array.balls.append(ball_msg)
+            ball_msg.stamp = rgb_msg.header.stamp
+            ball_msg.id = str(self.next_id)
+            ball_msg.x = p_map.point.x
+            ball_msg.y = p_map.point.y
+            ball_msg.z = p_map.point.z
+            ball_msg.score = float(score)
 
+            _, ball_msg.is_static = self.update_tracking(
+                self.next_id, p_map.point.x, p_map.point.y, rgb_msg.header.stamp.sec
+            )
+
+            ball_array.balls.append(ball_msg)
             markers.markers.append(self.make_marker(ball_msg))
             self.next_id += 1
 
@@ -120,8 +130,8 @@ class BallPerceptionNode(Node):
         if not (0 <= u < w and 0 <= v < h):
             return None
         u0, v0 = max(2, u), max(2, v)
-        u1, v1 = min(w-3, u), min(h-3, v)
-        roi = depth_img[v0-2:v1+3, u0-2:u1+3]
+        u1, v1 = min(w - 3, u), min(h - 3, v)
+        roi = depth_img[v0 - 2:v1 + 3, u0 - 2:u1 + 3]
         depth_vals = roi[np.isfinite(roi)]
         if depth_vals.size == 0:
             return None
@@ -138,12 +148,12 @@ class BallPerceptionNode(Node):
         p_cam.header.frame_id = rgb_msg.header.frame_id
         p_cam.point.x, p_cam.point.y, p_cam.point.z = x_cam, y_cam, z
 
-        # === map 프레임으로 변환 ===
+        # === map 프레임으로 변환 (현재 시각 기준) ===
         try:
             tf = self.tf_buffer.lookup_transform(
                 self.publish_frame,
                 p_cam.header.frame_id,
-                p_cam.header.stamp,
+                rclpy.time.Time(),  # 현재 시각 변환
                 timeout=Duration(seconds=0.05)
             )
             return tf2_geometry_msgs.do_transform_point(p_cam, tf)
@@ -170,12 +180,12 @@ class BallPerceptionNode(Node):
         marker.header.frame_id = self.publish_frame
         marker.header.stamp = self.get_clock().now().to_msg()
         marker.ns = 'balls'
-        marker.id = ball_msg.id
+        marker.id = int(ball_msg.id)
         marker.type = Marker.SPHERE
         marker.action = Marker.ADD
-        marker.pose.position.x = ball_msg.position_map.x
-        marker.pose.position.y = ball_msg.position_map.y
-        marker.pose.position.z = ball_msg.position_map.z
+        marker.pose.position.x = ball_msg.x
+        marker.pose.position.y = ball_msg.y
+        marker.pose.position.z = ball_msg.z
         marker.scale.x = 0.1
         marker.scale.y = 0.1
         marker.scale.z = 0.1
