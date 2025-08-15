@@ -72,4 +72,11 @@ install(FILES
   DESTINATION share/${PROJECT_NAME}/config
 )
 
+install(PROGRAMS
+  v2x_ball_bot_control/visual_servoing_node.py
+  DESTINATION lib/${PROJECT_NAME}
+  RENAME visual_servoing_node
+  PERMISSIONS OWNER_EXECUTE OWNER_READ GROUP_EXECUTE GROUP_READ WORLD_EXECUTE WORLD_READ
+)
+
 ament_package()

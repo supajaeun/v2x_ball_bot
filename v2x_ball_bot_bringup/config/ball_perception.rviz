@@ -1,0 +1,80 @@
+Panels:
+  - Class: rviz_common/Displays
+    Help Height: 78
+    Name: Displays
+    Property Tree Widget:
+      Expanded:
+        - /Global Options1
+        - /Status1
+        - /Map1
+        - /TF1
+        - /Ball Markers1
+        - /Balls (BallArray)1
+      Splitter Ratio: 0.5
+    Tree Height: 442
+  - Class: rviz_common/Selection
+    Name: Selection
+  - Class: rviz_common/ToolProperties
+    Expanded:
+      - /2D Nav Goal1
+    Name: Tool Properties
+    Splitter Ratio: 0.5886790156364441
+  - Class: rviz_common/Views
+    Expanded:
+      - /Current View1
+    Name: Views
+    Splitter Ratio: 0.5
+
+Visualization Manager:
+  Class: ""
+  Displays:
+    - Class: rviz_default_plugins/Map
+      Name: Map
+      Topic: /map
+      Alpha: 0.7
+      Draw Behind: false
+      Enabled: true
+    - Class: rviz_default_plugins/TF
+      Name: TF
+      Enabled: true
+    - Class: rviz_default_plugins/MarkerArray
+      Name: Ball Markers
+      Enabled: true
+      Marker Topic: /ball_markers
+      Queue Size: 10
+    - Class: rviz_default_plugins/Marker
+      Name: Single Ball Marker
+      Enabled: false
+    - Class: rviz_default_plugins/MarkerArray
+      Name: Balls (BallArray)
+      Enabled: true
+      Marker Topic: /balls
+      Queue Size: 10
+  Enabled: true
+  Global Options:
+    Background Color: 48; 48; 48
+    Fixed Frame: map
+  Name: root
+  Tools:
+    - Class: rviz_default_plugins/Interact
+    - Class: rviz_default_plugins/MoveCamera
+    - Class: rviz_default_plugins/Select
+    - Class: rviz_default_plugins/Measure
+    - Class: rviz_default_plugins/SetInitialPose
+      Topic: /initialpose
+    - Class: rviz_default_plugins/SetGoal
+      Topic: /move_base_simple/goal
+    - Class: rviz_default_plugins/PublishPoint
+      Single Click: true
+      Topic: /clicked_point
+  Views:
+    Current:
+      Class: rviz_default_plugins/Orbit
+      Distance: 5
+      Focal Point:
+        X: 0
+        Y: 0
+        Z: 0
+      Pitch: 0.785
+      Yaw: 0.785
+      Target Frame: map

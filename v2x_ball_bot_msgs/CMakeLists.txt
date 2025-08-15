@@ -10,7 +10,9 @@ find_package(geometry_msgs REQUIRED)
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/BallPixel.msg"
   "msg/BallPosition.msg"
-  DEPENDENCIES std_msgs geometry_msgs
+  "msg/Ball.msg"
+  "msg/BallArray.msg"
+  DEPENDENCIES builtin_interfaces std_msgs geometry_msgs
 )
 
 ament_export_dependencies(rosidl_default_runtime)

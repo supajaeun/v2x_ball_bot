@@ -7,15 +7,25 @@
   <maintainer email="user@example.com">Your Name</maintainer>
   <license>Apache-2.0</license>
 
+  <!-- 메시지 패키지 공통 -->
   <member_of_group>rosidl_interface_packages</member_of_group>
 
+  <!-- 빌드 툴 -->
   <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <!-- 코드 생성 매크로/템플릿 -->
   <build_depend>rosidl_default_generators</build_depend>
-  <build_depend>std_msgs</build_depend>
+  <build_export_depend>rosidl_default_generators</build_export_depend>
 
+  <!-- 런타임에 메시지 타입 사용 -->
   <exec_depend>rosidl_default_runtime</exec_depend>
-  <exec_depend>std_msgs</exec_depend>
 
+  <!-- 메시지에서 참조하는 타입들 -->
+  <depend>builtin_interfaces</depend>
+  <depend>std_msgs</depend>
+  <depend>geometry_msgs</depend>
+
+  <!-- 선택: 린트 -->
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>
 
