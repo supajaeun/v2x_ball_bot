@@ -7,16 +7,18 @@ def generate_launch_description():
             package='orbbec_camera',
             executable='orbbec_camera_node',
             name='orbbec_camera_node',
-            parameters=[{
-                'enable_color': True,
-                'color_width': 640,
-                'color_height': 480,
-                'color_fps': 30,
-                'depth_width': 320,
-                'depth_height': 240,
-                'depth_fps': 30,
-                'depth_format': 'Y11'
-            }],
-            output='screen'
+            output='screen',
+            parameters=[
+                {'enable_color': True},
+                {'enable_depth': True},
+                {'enable_align_depth_to_color': True},
+                {'color_width': 640},
+                {'color_height': 480},
+                {'color_fps': 30},
+                {'depth_width': 640},
+                {'depth_height': 480},
+                {'depth_fps': 30},
+                {'depth_format': 'Y12'}
+            ]
         )
     ])

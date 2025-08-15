@@ -55,7 +55,7 @@ class BallPerceptionNode(Node):
         self.markers_pub = self.create_publisher(MarkerArray, '/ball_markers', 10)
 
         # === 추적 데이터 ===
-        self.track_history = {}  # id: deque of (x, y, t)
+        self.track_history = {}
         self.next_id = 0
 
     def camera_info_callback(self, msg):
@@ -63,9 +63,11 @@ class BallPerceptionNode(Node):
         self.fy = msg.k[4]
         self.cx = msg.k[2]
         self.cy = msg.k[5]
+        self.get_logger().info(f"[DEBUG] Camera Info loaded: fx={self.fx}, fy={self.fy}, cx={self.cx}, cy={self.cy}")
 
     def synced_callback(self, rgb_msg, depth_msg):
         if self.fx is None:
+            self.get_logger().warn("[DEBUG] Camera intrinsics not received yet")
             return
 
         try:
@@ -80,43 +82,48 @@ class BallPerceptionNode(Node):
         boxes = results[0].boxes.xyxy.cpu().numpy()
         scores = results[0].boxes.conf.cpu().numpy()
 
-        # ✅ YOLO 시각화 창 표시
+        # YOLO 시각화
         vis_img = results[0].plot()
         cv2.imshow("YOLO Detections", vis_img)
         cv2.waitKey(1)
 
         if len(boxes) == 0:
+            self.get_logger().info("[DEBUG] No detections from YOLO")
             return
 
-        # === 출력 메시지 준비 ===
+        # === 메시지 준비 ===
         ball_array = BallArray()
         ball_array.stamp = rgb_msg.header.stamp
         markers = MarkerArray()
 
-        for i, (box, score) in enumerate(zip(boxes, scores)):
-            if score < 0.3:
-                continue
+        # ✅ 기존 마커 삭제
+        delete_all = Marker()
+        delete_all.header.frame_id = self.publish_frame
+        delete_all.header.stamp = self.get_clock().now().to_msg()
+        delete_all.action = Marker.DELETEALL
+        markers.markers.append(delete_all)
 
+        # === 첫 번째 공만 처리 ===
+        box, score = boxes[0], scores[0]
+        if score >= 0.3:
             p_map = self.pixel_to_map(box, depth_img, rgb_msg)
-            if p_map is None:
-                continue
+            if p_map:
+                ball_msg = Ball()
+                ball_msg.stamp = rgb_msg.header.stamp
+                ball_msg.id = "0"  # 항상 같은 ID
+                ball_msg.x = p_map.point.x
+                ball_msg.y = p_map.point.y
+                ball_msg.z = p_map.point.z
+                ball_msg.score = float(score)
 
-            ball_msg = Ball()
-            ball_msg.stamp = rgb_msg.header.stamp
-            ball_msg.id = str(self.next_id)
-            ball_msg.x = p_map.point.x
-            ball_msg.y = p_map.point.y
-            ball_msg.z = p_map.point.z
-            ball_msg.score = float(score)
+                _, ball_msg.is_static = self.update_tracking(
+                    0, p_map.point.x, p_map.point.y, rgb_msg.header.stamp.sec
+                )
 
-            _, ball_msg.is_static = self.update_tracking(
-                self.next_id, p_map.point.x, p_map.point.y, rgb_msg.header.stamp.sec
-            )
+                ball_array.balls.append(ball_msg)
+                markers.markers.append(self.make_marker(ball_msg))
 
-            ball_array.balls.append(ball_msg)
-            markers.markers.append(self.make_marker(ball_msg))
-            self.next_id += 1
-
+        self.get_logger().info(f"[DEBUG] Publishing {len(markers.markers)-1} ADD markers")
         self.balls_pub.publish(ball_array)
         self.markers_pub.publish(markers)
 
@@ -125,22 +132,31 @@ class BallPerceptionNode(Node):
         u = int((x1 + x2) / 2)
         v = int((y1 + y2) / 2)
 
-        # === 중앙 5x5 median 깊이 ===
+        # 중앙 5x5 median depth
         h, w = depth_img.shape[:2]
         if not (0 <= u < w and 0 <= v < h):
+            self.get_logger().warn(f"[DEBUG] Pixel out of bounds: ({u}, {v}) in {w}x{h}")
             return None
+
         u0, v0 = max(2, u), max(2, v)
         u1, v1 = min(w - 3, u), min(h - 3, v)
         roi = depth_img[v0 - 2:v1 + 3, u0 - 2:u1 + 3]
         depth_vals = roi[np.isfinite(roi)]
+
         if depth_vals.size == 0:
-            return None
-        depth = float(np.median(depth_vals))
-        z = depth / 1000.0 if depth_img.dtype != np.float32 else depth
-        if z <= 0.0 or z < 0.4:
+            self.get_logger().warn(f"[DEBUG] No valid depth at ({u},{v})")
             return None
 
-        # === 카메라 좌표계 ===
+        depth = float(np.median(depth_vals))
+        z = depth / 1000.0 if depth_img.dtype != np.float32 else depth
+
+        self.get_logger().info(f"[DEBUG] Box: {box}, Center: ({u}, {v}), Depth median: {z:.3f} m")
+
+        if z <= 0.0 or z < 0.4:
+            self.get_logger().warn(f"[DEBUG] Invalid depth z={z:.3f} m at ({u},{v})")
+            return None
+
+        # 카메라 좌표계
         x_cam = (u - self.cx) * z / self.fx
         y_cam = (v - self.cy) * z / self.fy
         p_cam = PointStamped()
@@ -148,17 +164,17 @@ class BallPerceptionNode(Node):
         p_cam.header.frame_id = rgb_msg.header.frame_id
         p_cam.point.x, p_cam.point.y, p_cam.point.z = x_cam, y_cam, z
 
-        # === map 프레임으로 변환 (현재 시각 기준) ===
+        # map 프레임으로 변환
         try:
             tf = self.tf_buffer.lookup_transform(
                 self.publish_frame,
                 p_cam.header.frame_id,
-                rclpy.time.Time(),  # 현재 시각 변환
+                rclpy.time.Time(),
                 timeout=Duration(seconds=0.05)
             )
             return tf2_geometry_msgs.do_transform_point(p_cam, tf)
         except Exception as e:
-            self.get_logger().warn(f"TF 변환 실패: {e}")
+            self.get_logger().warn(f"[DEBUG] TF 변환 실패: {e}")
             return None
 
     def update_tracking(self, obj_id, x, y, t):

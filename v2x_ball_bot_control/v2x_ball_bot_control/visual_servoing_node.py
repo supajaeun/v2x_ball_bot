@@ -1,10 +1,3 @@
-'''
-Astra 정합 Depth + 컬러를 받아 공 중심 픽셀 오프셋 → (v, ω) P제어 → /cmd_vel_servo 퍼블리시, 상태는 /servo/status로 냄
-
-출력 토픽: /cmd_vel_servo (twist_mux 입력)
-상태 토픽: /servo/status ("ACTIVE" | "DONE" | "LOST" | "IDLE")
-'''
-
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
@@ -29,13 +22,13 @@ def saturate(x, lo, hi):
     return max(lo, min(hi, x))
 
 class VisualServoingNode(Node):
-    """
-    컬러+Depth 동기화 → HSV로 테니스공 중심 추정 → 픽셀오프셋 기반 P제어
+    '''
+    Astra 정합 Depth + HSV로 컬러를 받아 공 중심 추정정 → (v, ω) P제어 → /cmd_vel_servo 퍼블리시, 상태는 /servo/status로 냄
     - 선속도: 목표 거리(target_dist_m) 대비 오차
     - 각속도: 화면 중심 대비 X오프셋
-    상태: /servo/status ("ACTIVE","DONE","LOST","IDLE")
-    출력: /cmd_vel_servo (geometry_msgs/Twist)
-    """
+    - 출력 토픽: /cmd_vel_servo (twist_mux 입력)
+    - 상태 토픽: /servo/status ("ACTIVE" | "DONE" | "LOST" | "IDLE")
+    '''
 
     def __init__(self):
         super().__init__('visual_servoing')
