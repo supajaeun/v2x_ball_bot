@@ -43,3 +43,15 @@ docker exec -it main_container bash -lc '
 source /opt/ros/humble/setup.bash && source /root/ros2_ws/install/setup.bash &&
 ros2 launch v2x_ball_bot_bringup bringup_min.launch.py \
   lidar_port:=/dev/ttyUSB0 lidar_baud:=115200 lidar_scan_mode:=Standard'
+
+## Gazebo + 스폰
+ros2 launch v2x_ball_bot_bringup gazebo_ros2.launch.py \
+  ns:=car1 xacro_pkg:=v2x_ball_bot_description \
+  xacro_relpath:=urdf/yahboomcar_X3.urdf.xacro publish_calibrated:=true
+## 디스플레이(RViz)
+ros2 launch v2x_ball_bot_bringup display_ros2.launch.py \
+  ns:=car1 xacro_pkg:=v2x_ball_bot_description robot_type:=X3 use_gui:=true
+## 주행/토픽 확인
+ros2 run teleop_twist_keyboard teleop_twist_keyboard --ros-args -r /cmd_vel:=/car1/cmd_vel
+ros2 topic echo /car1/odom
+ros2 run rviz2 rviz2
