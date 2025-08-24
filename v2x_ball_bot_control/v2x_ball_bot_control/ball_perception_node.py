@@ -13,6 +13,8 @@ from v2x_ball_bot_control.ball_perception import (
     make_marker, make_delete_all_marker
 )
 
+BALL_RADIUS = 0.065  # 공 반지름 (약 6.5cm → z 고정용)
+
 class BallPerceptionNode(Node):
     def __init__(self):
         super().__init__('ball_perception_node')
@@ -21,41 +23,35 @@ class BallPerceptionNode(Node):
         self.detector = BallDetector(package_dir)
         self.bridge = CvBridge()
 
-        # 파라미터 선언
         self.rgb_topic = self.declare_parameter('rgb_topic', '/color/image_raw').value
         self.depth_topic = self.declare_parameter('depth_topic', '/depth/image_raw').value
         self.camera_info_topic = self.declare_parameter('camera_info_topic', '/color/camera_info').value
         self.publish_frame = self.declare_parameter('publish_frame', 'map').value
 
-        # 카메라 intrinsic 값
         self.fx = self.fy = self.cx = self.cy = None
         self.create_subscription(CameraInfo, self.camera_info_topic, self.camera_info_callback, 10)
 
-        # TF
         import tf2_ros
         self.tf_buffer = tf2_ros.Buffer()
         self.tf_listener = tf2_ros.TransformListener(self.tf_buffer, self)
 
-        # RGB + Depth 동기화
         self.rgb_sub = message_filters.Subscriber(self, Image, self.rgb_topic)
         self.depth_sub = message_filters.Subscriber(self, Image, self.depth_topic)
-        self.sync = message_filters.ApproximateTimeSynchronizer(
-            [self.rgb_sub, self.depth_sub], 10, 0.05
-        )
+        self.sync = message_filters.ApproximateTimeSynchronizer([self.rgb_sub, self.depth_sub], 10, 0.05)
         self.sync.registerCallback(self.synced_callback)
 
-        # 퍼블리셔
         self.balls_pub = self.create_publisher(BallArray, '/balls', 10)
         self.markers_pub = self.create_publisher(MarkerArray, '/ball_markers', 10)
 
-        # Tracker
         self.tracker = SimpleTracker()
+
+        # 이전 프레임 좌표 저장
+        self.last_x = None
+        self.last_y = None
 
     def camera_info_callback(self, msg):
         self.fx, self.fy, self.cx, self.cy = msg.k[0], msg.k[4], msg.k[2], msg.k[5]
-        self.get_logger().info(
-            f"[DEBUG] Camera Info loaded: fx={self.fx}, fy={self.fy}, cx={self.cx}, cy={self.cy}"
-        )
+        self.get_logger().info(f"[DEBUG] Camera Info loaded: fx={self.fx}, fy={self.fy}, cx={self.cx}, cy={self.cy}")
 
     def synced_callback(self, rgb_msg, depth_msg):
         if self.fx is None:
@@ -74,15 +70,11 @@ class BallPerceptionNode(Node):
             self.get_logger().info("[DEBUG] No detections from YOLO")
             return
 
-        mapper = DepthMapper(
-            self.fx, self.fy, self.cx, self.cy, self.tf_buffer, self.publish_frame
-        )
+        mapper = DepthMapper(self.fx, self.fy, self.cx, self.cy, self.tf_buffer, self.publish_frame)
         ball_array = BallArray()
         ball_array.stamp = rgb_msg.header.stamp
         markers = MarkerArray()
-        markers.markers.append(
-            make_delete_all_marker(self.publish_frame, self.get_clock().now().to_msg())
-        )
+        markers.markers.append(make_delete_all_marker(self.publish_frame, self.get_clock().now().to_msg()))
 
         box, score = boxes[0], scores[0]
         if score >= 0.3:
@@ -91,16 +83,31 @@ class BallPerceptionNode(Node):
                 ball_msg = Ball()
                 ball_msg.stamp = rgb_msg.header.stamp
                 ball_msg.id = "0"
-                ball_msg.x = p_map.point.x
-                ball_msg.y = p_map.point.y
-                # 항상 공은 바닥 위에 있다고 가정 (테니스공 반지름 ~ 4cm)
-                ball_msg.z = 0.04
+
+                # 새 좌표
+                new_x, new_y = p_map.point.x, p_map.point.y
+
+                # 튀는 값 필터링 (20cm 이상 튀면 무시)
+                if self.last_x is not None and self.last_y is not None:
+                    dx = abs(new_x - self.last_x)
+                    dy = abs(new_y - self.last_y)
+                    if dx < 0.2 and dy < 0.2:
+                        ball_msg.x, ball_msg.y = new_x, new_y
+                    else:
+                        self.get_logger().warn("[DEBUG] 튀는 값 무시됨")
+                        ball_msg.x, ball_msg.y = self.last_x, self.last_y
+                else:
+                    ball_msg.x, ball_msg.y = new_x, new_y
+
+                # 항상 z는 공 반지름으로 고정 (바닥 위에 올려둔다)
+                ball_msg.z = BALL_RADIUS
+
+                self.last_x, self.last_y = ball_msg.x, ball_msg.y
+
                 ball_msg.score = float(score)
-
                 _, ball_msg.is_static = self.tracker.update(
-                    0, p_map.point.x, p_map.point.y, rgb_msg.header.stamp.sec
+                    0, ball_msg.x, ball_msg.y, rgb_msg.header.stamp.sec
                 )
-
                 ball_array.balls.append(ball_msg)
                 markers.markers.append(
                     make_marker(ball_msg, self.publish_frame, self.get_clock().now().to_msg())
@@ -109,14 +116,12 @@ class BallPerceptionNode(Node):
         self.balls_pub.publish(ball_array)
         self.markers_pub.publish(markers)
 
-
 def main(args=None):
     rclpy.init(args=args)
     node = BallPerceptionNode()
     rclpy.spin(node)
     node.destroy_node()
     rclpy.shutdown()
-
 
 if __name__ == '__main__':
     main()
