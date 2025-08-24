@@ -1,0 +1,16 @@
+# gz_resource_path.dsv.in
+# Gazebo(GZ) / Ignition / Gazebo Classic 환경 변수에
+# 패키지 리소스 경로를 "중복 없이 앞에" 추가합니다.
+
+# --- Gazebo Sim (Garden/후속) ---
+prepend-non-duplicate;GZ_SIM_RESOURCE_PATH;@CMAKE_INSTALL_PREFIX@/share/@PROJECT_NAME@
+prepend-non-duplicate;GZ_SIM_RESOURCE_PATH;@CMAKE_INSTALL_PREFIX@/share/@PROJECT_NAME@/worlds
+prepend-non-duplicate;GZ_SIM_RESOURCE_PATH;@CMAKE_INSTALL_PREFIX@/share/@PROJECT_NAME@/models
+
+# --- Ignition 호환 (Fortress 등) ---
+prepend-non-duplicate;IGN_GAZEBO_RESOURCE_PATH;@CMAKE_INSTALL_PREFIX@/share/@PROJECT_NAME@
+prepend-non-duplicate;IGN_GAZEBO_RESOURCE_PATH;@CMAKE_INSTALL_PREFIX@/share/@PROJECT_NAME@/worlds
+prepend-non-duplicate;IGN_GAZEBO_RESOURCE_PATH;@CMAKE_INSTALL_PREFIX@/share/@PROJECT_NAME@/models
+
+# --- (구) Gazebo Classic 모델 경로 ---
+prepend-non-duplicate;GAZEBO_MODEL_PATH;@CMAKE_INSTALL_PREFIX@/share/@PROJECT_NAME@/models
