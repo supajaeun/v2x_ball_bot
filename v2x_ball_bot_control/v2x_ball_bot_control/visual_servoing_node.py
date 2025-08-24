@@ -22,13 +22,11 @@ def saturate(x, lo, hi):
     return max(lo, min(hi, x))
 
 class VisualServoingNode(Node):
-    '''
-    Astra 정합 Depth + HSV로 컬러를 받아 공 중심 추정정 → (v, ω) P제어 → /cmd_vel_servo 퍼블리시, 상태는 /servo/status로 냄
-    - 선속도: 목표 거리(target_dist_m) 대비 오차
-    - 각속도: 화면 중심 대비 X오프셋
-    - 출력 토픽: /cmd_vel_servo (twist_mux 입력)
-    - 상태 토픽: /servo/status ("ACTIVE" | "DONE" | "LOST" | "IDLE")
-    '''
+    """
+    컬러+Depth 동기화 → HSV로 테니스공 중심 추정 → 픽셀오프셋 기반 P제어
+    상태: /servo/status ("ACTIVE","DONE","LOST","IDLE")
+    출력: /cmd_vel_servo (geometry_msgs/Twist)
+    """
 
     def __init__(self):
         super().__init__('visual_servoing')
@@ -48,7 +46,7 @@ class VisualServoingNode(Node):
         self.declare_parameter('lost_timeout', 1.0)   # s
         self.declare_parameter('search_yaw_rate', 0.0) # 로스트 시 탐색 회전(rad/s). 0이면 정지.
 
-        # 공 색상(HVS) 기본 범위(형광 테니스볼 대략치) — 필요 시 튜닝
+        # 공 색상(HSV) 기본 범위(형광 테니스볼 대략치)
         self.declare_parameter('hsv_lower', [20, 80, 80])   # H,S,V
         self.declare_parameter('hsv_upper', [45, 255, 255])
 
@@ -66,7 +64,15 @@ class VisualServoingNode(Node):
 
         # ---------------- Pub ----------------
         self.cmd_pub = self.create_publisher(Twist, '/cmd_vel_servo', 10)
-        self.status_pub = self.create_publisher(String, '/servo/status', 10)
+
+        # ★ 상태 퍼블리셔를 TRANSIENT_LOCAL로 (새 구독자도 마지막 값 즉시 수신)
+        status_qos = QoSProfile(
+            reliability=QoSReliabilityPolicy.RELIABLE,
+            durability=QoSDurabilityPolicy.TRANSIENT_LOCAL,
+            history=QoSHistoryPolicy.KEEP_LAST,
+            depth=1
+        )
+        self.status_pub = self.create_publisher(String, '/servo/status', status_qos)
 
         # ---------------- Sub (sync) ----------------
         self.bridge = CvBridge()
@@ -79,7 +85,18 @@ class VisualServoingNode(Node):
         self.last_seen_ts = time.time()
         self.last_status = 'IDLE'
 
+        # ★ 초기 상태 즉시 송신 + 0.5초 하트비트
+        self.status_pub.publish(String(data=self.last_status))
+        self.heartbeat_timer = self.create_timer(0.5, self._heartbeat)
+
         self.get_logger().info(f'VisualServoingNode started. color="{color_topic}", depth="{depth_topic}"')
+
+    # ★ 하트비트 타이머 콜백
+    def _heartbeat(self):
+        try:
+            self.status_pub.publish(String(data=self.last_status))
+        except Exception:
+            pass
 
     # -------------- Core callback --------------
     def cb_sync(self, color_msg: Image, depth_msg: Image):
@@ -108,7 +125,7 @@ class VisualServoingNode(Node):
 
         H, W = color.shape[:2]
 
-        # --- Detect tennis ball by HSV (placeholder; 실제론 YOLO 결과를 받아도 됨) ---
+        # --- Detect tennis ball by HSV (placeholder) ---
         hsv = cv2.cvtColor(color, cv2.COLOR_BGR2HSV)
         mask = cv2.inRange(hsv, hsv_lower, hsv_upper)
         mask = cv2.medianBlur(mask, 5)
@@ -118,7 +135,7 @@ class VisualServoingNode(Node):
         if contours:
             c = max(contours, key=cv2.contourArea)
             (x, y), radius = cv2.minEnclosingCircle(c)
-            if radius > 3:  # 너무 작은 노이즈 제외
+            if radius > 3:
                 cx, cy = int(x), int(y)
 
         now = time.time()
@@ -127,53 +144,46 @@ class VisualServoingNode(Node):
         if cx is None or cy is None:
             # 로스트 처리
             if (now - self.last_seen_ts) > lost_t:
-                self.last_status = 'LOST'
-                self.status_pub.publish(String(data=self.last_status))
+                if self.last_status != 'LOST':
+                    self.last_status = 'LOST'
+                    self.status_pub.publish(String(data=self.last_status))
                 # 탐색 회전 옵션
                 twist.angular.z = saturate(search_rate, -w_max, w_max)
                 self.cmd_pub.publish(twist)
             else:
                 # 최근에 봤던 상태면 ACTIVE 유지(혹은 0 유지)
-                self.last_status = 'ACTIVE'
-                self.status_pub.publish(String(data=self.last_status))
+                if self.last_status != 'ACTIVE':
+                    self.last_status = 'ACTIVE'
+                    self.status_pub.publish(String(data=self.last_status))
             return
 
         # 공을 봤다!
         self.last_seen_ts = now
 
-        # --- Depth 읽기 (center 픽셀 근처 median으로 노이즈 억제) ---
+        # --- Depth 읽기 (center 근방 median) ---
         win = 3
         x0 = max(0, cx - win); x1 = min(W, cx + win + 1)
         y0 = max(0, cy - win); y1 = min(H, cy + win + 1)
         patch = depth[y0:y1, x0:x1].astype(np.float32)
 
-        if patch.ndim == 2:
-            vals = patch.flatten()
-        else:
-            vals = patch[..., 0].flatten()
-
+        vals = patch.flatten() if patch.ndim == 2 else patch[..., 0].flatten()
         vals = vals[np.isfinite(vals)]
         vals = vals[vals > 0]
-        if vals.size == 0:
-            dist_m = float('nan')
-        else:
-            dist_m = np.median(vals) * dscale
+        dist_m = (np.median(vals) * dscale) if vals.size > 0 else float('nan')
 
         # --- 픽셀 오프셋, 제어 ---
-        ex_px = cx - (W / 2.0)  # +면 우측 → 좌회전(양의 ω)로 맞출지, 반대일지 선택
-        # 각속도(오른손좌표 기준): 오른쪽이면 +z 회전이 카메라 기준 왼쪽보기 → 보통 ex_px에 +k_w
-        w_cmd = k_w * (-ex_px)  # 화면 우측(+)이면 -회전으로 중심에 맞춤
+        ex_px = cx - (W / 2.0)
+        w_cmd = k_w * (-ex_px)
         w_cmd = saturate(w_cmd, -w_max, w_max)
 
         v_cmd = 0.0
         depth_ok = (not math.isnan(dist_m)) and (dmin <= dist_m <= dmax)
         if depth_ok:
-            v_cmd = k_v * (dist_m - target)  # 멀면 +, 가까우면 -
+            v_cmd = k_v * (dist_m - target)
             v_cmd = saturate(v_cmd, -v_max, v_max)
 
         # --- 완료 조건 ---
         if abs(ex_px) <= stop_r and depth_ok and abs(dist_m - target) < 0.05:
-            # 정렬/거리 OK → 정지 & DONE
             twist.linear.x = 0.0
             twist.angular.z = 0.0
             self.cmd_pub.publish(twist)
@@ -191,7 +201,6 @@ class VisualServoingNode(Node):
             self.last_status = 'ACTIVE'
             self.status_pub.publish(String(data=self.last_status))
 
-    # 안전을 위해 종료 시 정지 명령 1회 전송
     def destroy_node(self):
         try:
             self.cmd_pub.publish(Twist())

@@ -1,16 +1,15 @@
 <?xml version="1.0"?>
 <sdf version="1.9">
   <world name="default">
-    <!-- 기본 시스템 플러그인들(그대로 유지) -->
+    <!-- 기본 시스템 플러그인들 -->
     <plugin name="gz::sim::systems::Physics" filename="gz-sim-physics-system"/>
     <plugin name="gz::sim::systems::UserCommands" filename="gz-sim-user-commands-system"/>
     <plugin name="gz::sim::systems::SceneBroadcaster" filename="gz-sim-scene-broadcaster-system"/>
     <plugin name="gz::sim::systems::Sensors" filename="gz-sim-sensors-system"/>
 
-    <!-- (선택) 중력 명시 -->
     <gravity>0 0 -9.8</gravity>
 
-    <!-- ground_plane 인라인 정의 -->
+    <!-- ground_plane 인라인 -->
     <model name="ground_plane">
       <static>true</static>
       <pose>0 0 0 0 0 0</pose>
@@ -46,9 +45,10 @@
       </link>
     </model>
 
-    <!-- sun 조명 인라인 정의 -->
-    <light name="sun" type="directional" cast_shadows="true">
+    <!-- sun 인라인 (cast_shadows를 태그로) -->
+    <light name="sun" type="directional">
       <pose>0 0 10 0 0 0</pose>
+      <cast_shadows>true</cast_shadows>
       <diffuse>0.8 0.8 0.8 1</diffuse>
       <specular>0.1 0.1 0.1 1</specular>
       <attenuation>

@@ -10,7 +10,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/urdf)
 endif()
 
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/meshes)
-  install(DIRECTORY meshes/ DESTINATION share/${PROJECT_NAME}/meshes)
+  install(DIRECTORY meshes gz DESTINATION share/${PROJECT_NAME})
 endif()
 
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/launch)

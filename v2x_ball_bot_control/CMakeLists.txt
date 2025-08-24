@@ -11,6 +11,13 @@ ament_python_install_package(v2x_ball_bot_control)
 # Nodes 설치
 # =========================
 
+install(PROGRAMS
+  v2x_ball_bot_control/visual_servoing_node.py
+  DESTINATION lib/${PROJECT_NAME}
+  RENAME visual_servoing_node
+  PERMISSIONS OWNER_EXECUTE OWNER_READ GROUP_EXECUTE GROUP_READ WORLD_EXECUTE WORLD_READ
+)
+
 # ball_perception_node 설치 (기존 ball_detector_node 대체)
 install(PROGRAMS
   v2x_ball_bot_control/ball_perception_node.py

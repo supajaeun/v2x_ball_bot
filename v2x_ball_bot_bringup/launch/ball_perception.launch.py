@@ -34,13 +34,23 @@ def generate_launch_description():
             output='screen'
         ),
 
-        # Static TF: map -> base_link
+        # Static TF: map -> odom
         Node(
             package='tf2_ros',
             executable='static_transform_publisher',
-            name='static_tf_map_to_base',
+            name='static_tf_map_to_odom',
             arguments=['0', '0', '0', '0', '0', '0',
-                       'map', 'base_link'],
+                       'map', 'odom'],
+            output='screen'
+        ),
+
+        # Static TF: odom -> base_link
+        Node(
+            package='tf2_ros',
+            executable='static_transform_publisher',
+            name='static_tf_odom_to_base',
+            arguments=['0', '0', '0', '0', '0', '0',
+                       'odom', 'base_link'],
             output='screen'
         ),
 
