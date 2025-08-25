@@ -54,6 +54,14 @@ install(PROGRAMS
   PERMISSIONS OWNER_EXECUTE OWNER_READ GROUP_EXECUTE GROUP_READ WORLD_EXECUTE WORLD_READ
 )
 
+# ✅ court_manager 설치
+install(PROGRAMS
+  v2x_ball_bot_control/court_manager.py
+  DESTINATION lib/${PROJECT_NAME}
+  RENAME court_manager
+  PERMISSIONS OWNER_EXECUTE OWNER_READ GROUP_EXECUTE GROUP_READ WORLD_EXECUTE WORLD_READ
+)
+
 
 install(FILES
   config/twist_mux.yaml
@@ -68,6 +76,7 @@ install(DIRECTORY
 # (선택) 파라미터 YAML share에 설치
 install(FILES
   config/scan_manager.yaml
+  config/court_manager.yaml
   DESTINATION share/${PROJECT_NAME}/config
 )
 
