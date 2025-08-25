@@ -1,7 +1,14 @@
-/**:
-  ros__parameters:
-    output_topic: /cmd_vel
-    topics:
-      servo:    { topic: /cmd_vel_servo,    timeout: 0.5, priority: 100 }
-      nav2:     { topic: /cmd_vel_nav2,     timeout: 0.5, priority: 50  }
-
+topics:
+  - name: e_stop
+    topic: /safety/estop_cmd
+    timeout: 0.5
+    priority: 100
+  - name: servo
+    topic: /cmd_vel_servo
+    timeout: 0.2
+    priority: 70
+  - name: nav2
+    topic: /nav2/cmd_vel
+    timeout: 0.2
+    priority: 60
+output_topic: /cmd_vel_out
