@@ -11,6 +11,7 @@ ament_python_install_package(v2x_ball_bot_control)
 # Nodes 설치
 # =========================
 
+# motor_driver_node 설치
 install(PROGRAMS
   v2x_ball_bot_control/motor_driver_node.py
   DESTINATION lib/${PROJECT_NAME}
@@ -18,7 +19,7 @@ install(PROGRAMS
   PERMISSIONS OWNER_EXECUTE OWNER_READ GROUP_EXECUTE GROUP_READ WORLD_EXECUTE WORLD_READ
 )
 
-
+# visual_servoing_node 설치
 install(PROGRAMS
   v2x_ball_bot_control/visual_servoing_node.py
   DESTINATION lib/${PROJECT_NAME}
@@ -47,12 +48,12 @@ install(FILES
 )
 
 # ✅ scan_manager 설치
-install(PROGRAMS
-  v2x_ball_bot_control/scan_manager.py
-  DESTINATION lib/${PROJECT_NAME}
-  RENAME scan_manager
-  PERMISSIONS OWNER_EXECUTE OWNER_READ GROUP_EXECUTE GROUP_READ WORLD_EXECUTE WORLD_READ
-)
+# install(PROGRAMS
+#  v2x_ball_bot_control/scan_manager.py
+#  DESTINATION lib/${PROJECT_NAME}
+#  RENAME scan_manager
+#  PERMISSIONS OWNER_EXECUTE OWNER_READ GROUP_EXECUTE GROUP_READ WORLD_EXECUTE WORLD_READ
+# )
 
 # ✅ court_manager 설치
 install(PROGRAMS
@@ -62,29 +63,23 @@ install(PROGRAMS
   PERMISSIONS OWNER_EXECUTE OWNER_READ GROUP_EXECUTE GROUP_READ WORLD_EXECUTE WORLD_READ
 )
 
-
-install(FILES
-  config/twist_mux.yaml
-  DESTINATION share/${PROJECT_NAME}/config
-)
-
-install(DIRECTORY
-  launch
-  DESTINATION share/${PROJECT_NAME}
-)
+# ⚠️ 현재 twist_mux.yaml 없음 → 주석 처리
+# install(FILES
+#   config/twist_mux.yaml
+#   DESTINATION share/${PROJECT_NAME}/config
+# )
 
 # (선택) 파라미터 YAML share에 설치
-install(FILES
-  config/scan_manager.yaml
-  config/court_manager.yaml
-  DESTINATION share/${PROJECT_NAME}/config
-)
+# install(FILES
+#  config/scan_manager.yaml
+#  config/court_manager.yaml
+#  DESTINATION share/${PROJECT_NAME}/config
+# )
 
-install(PROGRAMS
-  v2x_ball_bot_control/visual_servoing_node.py
-  DESTINATION lib/${PROJECT_NAME}
-  RENAME visual_servoing_node
-  PERMISSIONS OWNER_EXECUTE OWNER_READ GROUP_EXECUTE GROUP_READ WORLD_EXECUTE WORLD_READ
-)
+# launch 디렉토리 설치
+# install(DIRECTORY
+#  launch
+#  DESTINATION share/${PROJECT_NAME}
+# )
 
 ament_package()

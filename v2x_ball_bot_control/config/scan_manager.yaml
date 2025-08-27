@@ -1,9 +1,0 @@
-scan_manager:
-  ros__parameters:
-    map_frame: "map"
-    goal_topic: "/goal_pose"
-    balls_topic: "/balls"
-    spin_speed: 0.3
-    spin_rounds: 2
-    settle_sec: 1.0
-    waypoints: []
